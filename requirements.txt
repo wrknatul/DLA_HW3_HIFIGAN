@@ -1,14 +1,19 @@
-torch==2.2.0
-torchvision==0.17.0
+torch==2.4.1
+torchvision
 torchmetrics
+torchaudio==2.4.1
 numpy==1.26.4
 tqdm
 matplotlib
 pandas
+pesq
 wandb
 comet_ml
 hydra-core
+speechbrain
+librosa
 
 black
 isort
 pre-commit
+pyloudnorm

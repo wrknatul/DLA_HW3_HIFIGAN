@@ -1,5 +1,10 @@
+import torch 
+from itertools import chain
+
 from src.metrics.tracker import MetricTracker
 from src.trainer.base_trainer import BaseTrainer
+
+from src.datasets.mel_generator import MelSpectrogramConfig, MelSpectrogram
 
 
 class Trainer(BaseTrainer):
@@ -32,27 +37,55 @@ class Trainer(BaseTrainer):
         metric_funcs = self.metrics["inference"]
         if self.is_train:
             metric_funcs = self.metrics["train"]
-            self.optimizer.zero_grad()
+            self.optimizer_disk.zero_grad()
+            self.optimizer_gen.zero_grad()
 
-        outputs = self.model(**batch)
-        batch.update(outputs)
+        batch["wavs_predictions"] = self.model.generator(batch["mels"])
+        mel_transform = MelSpectrogram(MelSpectrogramConfig)
+        batch["mels_predictions"] = mel_transform(batch["wavs_predictions"]).squeeze(1)
 
-        all_losses = self.criterion(**batch)
-        batch.update(all_losses)
+        mpd_real, _ = self.model.mpd(batch["wavs"])
+        mpd_predicted, _ = self.model.mpd(batch["wavs_predictions"].detach())
+        msd_real, _ = self.model.msd(batch["wavs"])
+        msd_prediction, _ = self.model.msd(batch["wavs_predictions"].detach())
+
+        batch["disk_loss"] = self.criterion.discriminatorLoss(mpd_real, mpd_predicted) + self.criterion.discriminatorLoss(msd_real, msd_prediction)
 
         if self.is_train:
-            batch["loss"].backward()  # sum of all losses is always called loss
-            self._clip_grad_norm()
-            self.optimizer.step()
-            if self.lr_scheduler is not None:
-                self.lr_scheduler.step()
+            batch["disk_loss"].backward()
+            self._clip_grad_norm(
+                chain(self.model.mpd.parameters(), self.model.msd.parameters())
+            )
+            self.optimizer_disk.step()
+            self.lr_scheduler_disk.step()
 
-        # update metrics for each loss (in case of multiple losses)
+        mpd_wavs_real, mpd_wavs_feat = self.model.mpd(batch["wavs"])
+        mpd_pred_real, mpd_pred_feat = self.model.mpd(batch["wavs_predictions"].detach())
+        msd_wavs_real, msd_wavs_feat = self.model.msd(batch["wavs"])
+        msd_pred_real, msd_pred_feat = self.model.msd(batch["wavs_predictions"].detach())
+
+        mpd_gen_loss = self.criterion.generatorLoss(mpd_pred_real)
+        msd_gen_loss = self.criterion.generatorLoss(msd_pred_real)
+        mpd_feat_loss = self.criterion.featureMatchingLoss(mpd_wavs_feat, mpd_pred_feat)
+        msd_feat_loss = self.criterion.featureMatchingLoss(msd_wavs_feat, msd_pred_feat)
+        mel_loss = self.criterion.melSpectrogramLoss(batch["mels"], batch["mels_predictions"])
+
+        batch["gen_loss"] = mpd_gen_loss + msd_gen_loss
+        batch["feature_loss"] = 2 * (mpd_feat_loss + msd_feat_loss)
+        batch["mel_loss"] = 45 * mel_loss
+        batch["total_loss"] = batch["gen_loss"] + batch["feature_loss"] + batch["mel_loss"]
+
+        if self.is_train:
+            batch["total_loss"].backward()
+            self._clip_grad_norm(self.model.generator.parameters())
+            self.optimizer_gen.step()
+            self.lr_scheduler_gen.step()
+
         for loss_name in self.config.writer.loss_names:
             metrics.update(loss_name, batch[loss_name].item())
 
         for met in metric_funcs:
-            metrics.update(met.name, met(**batch))
+            metrics.update(met, batch[met].item())
         return batch
 
     def _log_batch(self, batch_idx, batch, mode="train"):

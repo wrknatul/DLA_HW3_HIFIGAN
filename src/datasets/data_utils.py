@@ -4,7 +4,8 @@ from hydra.utils import instantiate
 
 from src.datasets.collate import collate_fn
 from src.utils.init_utils import set_worker_seed
-
+import logging
+logger = logging.getLogger(__name__)
 
 def inf_loop(dataloader):
     """
@@ -63,6 +64,7 @@ def get_dataloaders(config, device):
     move_batch_transforms_to_device(batch_transforms, device)
 
     # dataset partitions init
+    logger.info(print(config.datasets))
     datasets = instantiate(config.datasets)  # instance transforms are defined inside
 
     # dataloaders init

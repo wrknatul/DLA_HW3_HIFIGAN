@@ -20,8 +20,10 @@ class BaseTrainer:
         model,
         criterion,
         metrics,
-        optimizer,
-        lr_scheduler,
+        optimizer_disk,
+        optimizer_gen,
+        lr_scheduler_disk,
+        lr_scheduler_gen,
         config,
         device,
         dataloaders,
@@ -68,8 +70,10 @@ class BaseTrainer:
 
         self.model = model
         self.criterion = criterion
-        self.optimizer = optimizer
-        self.lr_scheduler = lr_scheduler
+        self.optimizer_disk = optimizer_disk
+        self.optimizer_gen = optimizer_gen
+        self.lr_scheduler_disk = lr_scheduler_disk
+        self.lr_scheduler_gen = lr_scheduler_gen
         self.batch_transforms = batch_transforms
 
         # define dataloaders
@@ -224,12 +228,15 @@ class BaseTrainer:
             if batch_idx % self.log_step == 0:
                 self.writer.set_step((epoch - 1) * self.epoch_len + batch_idx)
                 self.logger.debug(
-                    "Train Epoch: {} {} Loss: {:.6f}".format(
-                        epoch, self._progress(batch_idx), batch["loss"].item()
+                    "Train Epoch: {} {} Total loss: {:.6f}".format(
+                        epoch, self._progress(batch_idx), batch["total_loss"].item()
                     )
                 )
                 self.writer.add_scalar(
-                    "learning rate", self.lr_scheduler.get_last_lr()[0]
+                    "learning rate disk", self.lr_scheduler_disk.get_last_lr()[0]
+                )
+                self.writer.add_scalar(
+                    "learning rate generator", self.lr_scheduler_gen.get_last_lr()[0]
                 )
                 self._log_scalars(self.train_metrics)
                 self._log_batch(batch_idx, batch)
@@ -373,18 +380,20 @@ class BaseTrainer:
                 )
         return batch
 
-    def _clip_grad_norm(self):
+    def _clip_grad_norm(self, parameters=None):
         """
         Clips the gradient norm by the value defined in
         config.trainer.max_grad_norm
         """
+        if parameters is None:
+            parameters = self.model.parameters()
         if self.config["trainer"].get("max_grad_norm", None) is not None:
             clip_grad_norm_(
-                self.model.parameters(), self.config["trainer"]["max_grad_norm"]
+                parameters, self.config["trainer"]["max_grad_norm"]
             )
 
     @torch.no_grad()
-    def _get_grad_norm(self, norm_type=2):
+    def _get_grad_norm(self, parameters=None, norm_type=2):
         """
         Calculates the gradient norm for logging.
 
@@ -393,7 +402,8 @@ class BaseTrainer:
         Returns:
             total_norm (float): the calculated norm.
         """
-        parameters = self.model.parameters()
+        if parameters is None:
+            parameters = self.model.parameters()
         if isinstance(parameters, torch.Tensor):
             parameters = [parameters]
         parameters = [p for p in parameters if p.grad is not None]
@@ -467,8 +477,10 @@ class BaseTrainer:
             "arch": arch,
             "epoch": epoch,
             "state_dict": self.model.state_dict(),
-            "optimizer": self.optimizer.state_dict(),
-            "lr_scheduler": self.lr_scheduler.state_dict(),
+            "optimizer_disk": self.optimizer_disk.state_dict(),
+            "optimizer_gen": self.optimizer_gen.state_dict(),
+            "lr_scheduler_disk": self.lr_scheduler_disk.state_dict(),
+            "lr_scheduler_gen": self.lr_scheduler_gen.state_dict(),
             "monitor_best": self.mnt_best,
             "config": self.config,
         }
@@ -513,8 +525,10 @@ class BaseTrainer:
 
         # load optimizer state from checkpoint only when optimizer type is not changed.
         if (
-            checkpoint["config"]["optimizer"] != self.config["optimizer"]
-            or checkpoint["config"]["lr_scheduler"] != self.config["lr_scheduler"]
+            checkpoint["config"]["optimizer_gen"] != self.config["optimizer_gen"]
+            or checkpoint["config"]["optimizer_disk"] != self.config["optimizer_disk"]
+            or checkpoint["config"]["lr_scheduler_gen"] != self.config["lr_scheduler_gen"]
+            or checkpoint["config"]["lr_scheduler_disk"] != self.config["lr_scheduler_disk"]
         ):
             self.logger.warning(
                 "Warning: Optimizer or lr_scheduler given in the config file is different "
@@ -522,8 +536,10 @@ class BaseTrainer:
                 "are not resumed."
             )
         else:
-            self.optimizer.load_state_dict(checkpoint["optimizer"])
-            self.lr_scheduler.load_state_dict(checkpoint["lr_scheduler"])
+            self.optimizer_gen.load_state_dict(checkpoint["optimizer_gen"])
+            self.optimizer_disk.load_state_dict(checkpoint["optimizer_disk"])
+            self.lr_scheduler_gen.load_state_dict(checkpoint["lr_scheduler_gen"])
+            self.lr_scheduler_disk.load_state_dict(checkpoint["lr_scheduler_disk"])
 
         self.logger.info(
             f"Checkpoint loaded. Resume training from epoch {self.start_epoch}"
