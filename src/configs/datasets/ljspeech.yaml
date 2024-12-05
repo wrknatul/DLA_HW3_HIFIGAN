@@ -1,8 +1,6 @@
 train:
   _target_: src.datasets.LJspeechDataset
   part: "train"
-  data_dir: "small_dataset"
 val:
   _target_: src.datasets.LJspeechDataset
-  part: "val"
-  data_dir: "small_dataset"
+  part: "test"

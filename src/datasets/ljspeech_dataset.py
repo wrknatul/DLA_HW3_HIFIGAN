@@ -42,7 +42,7 @@ class LJspeechDataset(BaseDataset):
         shutil.rmtree(str(self._data_dir / "LJSpeech-1.1"))
 
         files = [file_name for file_name in (self._data_dir / "wavs").iterdir()]
-        train_length = int(0.99999 * len(files)) # hand split, test ~ 15% 
+        train_length = int(0.85 * len(files)) # hand split, test ~ 15% 
         (self._data_dir / "train").mkdir(exist_ok=True, parents=True)
         (self._data_dir / "test").mkdir(exist_ok=True, parents=True)
         for i, fpath in enumerate((self._data_dir / "wavs").iterdir()):

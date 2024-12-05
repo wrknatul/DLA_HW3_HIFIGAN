@@ -4,8 +4,6 @@ from itertools import chain
 from src.metrics.tracker import MetricTracker
 from src.trainer.base_trainer import BaseTrainer
 
-from src.datasets.mel_generator import MelSpectrogramConfig, MelSpectrogram
-
 
 class Trainer(BaseTrainer):
     """
@@ -41,8 +39,7 @@ class Trainer(BaseTrainer):
             self.optimizer_gen.zero_grad()
 
         batch["wavs_predictions"] = self.model.generator(batch["mels"])
-        mel_transform = MelSpectrogram(MelSpectrogramConfig)
-        batch["mels_predictions"] = mel_transform(batch["wavs_predictions"]).squeeze(1)
+        batch["mels_predictions"] = self.mel_transform(batch["wavs_predictions"]).squeeze(1)
 
         mpd_real, _ = self.model.mpd(batch["wavs"])
         mpd_predicted, _ = self.model.mpd(batch["wavs_predictions"].detach())

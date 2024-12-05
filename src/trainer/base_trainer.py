@@ -9,6 +9,7 @@ from src.datasets.data_utils import inf_loop
 from src.metrics.tracker import MetricTracker
 from src.utils.io_utils import ROOT_PATH
 
+from src.datasets.mel_generator import MelSpectrogramConfig, MelSpectrogram
 
 class BaseTrainer:
     """
@@ -133,6 +134,8 @@ class BaseTrainer:
             writer=self.writer,
         )
 
+        self.mel_transform = MelSpectrogram(MelSpectrogramConfig)
+        self.mel_transform = self.mel_transform.to(self.device)
         # define checkpoint dir and init everything if required
 
         self.checkpoint_dir = (
