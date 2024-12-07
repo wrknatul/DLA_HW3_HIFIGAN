@@ -75,7 +75,7 @@ class LJspeechDataset(BaseDataset):
             data_object = pad_sequence(data_object, (0, self.max_len - data_object.shape[1]))
         pos = np.random.randint(0, max(0, len(data_object) - self.max_len) + 1)
         data_object = data_object[..., pos: pos + self.max_len]
-        instance_data = {"data_object": data_object, "text": data_text, "audio_len": data_audio_len}
+        instance_data = {"data_object": data_object, "text": data_text, "audio_len": data_audio_len, "data_path": data_path}
         instance_data = self.preprocess_data(instance_data)
 
         return instance_data

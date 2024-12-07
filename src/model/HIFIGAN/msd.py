@@ -12,7 +12,7 @@ class SubDiscriminator(nn.Module):
             norm(nn.Conv1d(256, 512, kernel_size=41, stride=4, groups=16, dilation=1, padding=20)),
             norm(nn.Conv1d(512, 1024, kernel_size=41, stride=4, groups=64, dilation=1, padding=20)),
             norm(nn.Conv1d(1024, 1024, kernel_size=41, stride=4, groups=256, dilation=1, padding=20)),
-            norm(nn.Conv1d(1024, 1024, kernel_size=5, stride=1, groups=256, dilation=1, padding=2)),
+            norm(nn.Conv1d(1024, 1024, kernel_size=5, stride=1, groups=1, dilation=1, padding=2)),
         ])
         
         self.conv_post = norm(nn.Conv1d(1024, 1, kernel_size=3, stride=1, padding=1))

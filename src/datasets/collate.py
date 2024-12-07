@@ -18,10 +18,12 @@ def collate_fn(dataset_items: list[dict]):
     audios  = []
     audio_lens = []
     texts = []
+    paths = []
     for item in dataset_items:
         audios.append(item["data_object"].squeeze(0))
         audio_lens.append(item["audio_len"])
         texts.append(item["text"])
+        paths.append(item["data_path"])
     
     mel_generator = MelSpectrogram(MelSpectrogramConfig())
     final_wavs = pad_sequence(audios, batch_first=True)
@@ -30,5 +32,6 @@ def collate_fn(dataset_items: list[dict]):
         "wavs": final_wavs.unsqueeze(1),
         "mels": mels,
         "audio_lens": torch.Tensor(audio_lens),
-        "text": texts
+        "text": texts,
+        "paths": paths
     }

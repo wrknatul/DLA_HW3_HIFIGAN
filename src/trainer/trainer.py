@@ -1,3 +1,7 @@
+from pathlib import Path
+
+import pandas as pd
+
 import torch 
 from itertools import chain
 
@@ -103,7 +107,22 @@ class Trainer(BaseTrainer):
         # logging scheme might be different for different partitions
         if mode == "train":  # the method is called only every self.log_step steps
             # Log Stuff
+            self.log_audio(**batch)
             pass
         else:
             # Log Stuff
             pass
+
+    def log_audio(
+        self, wavs_predictions, paths, examples_to_log=10, **batch
+    ):
+        tuples = list(zip(wavs_predictions, paths))
+
+        rows = {}
+        for audio, path in tuples[:examples_to_log]:
+            rows[Path(path).name] = {
+                "audio": audio
+            }
+        self.writer.add_table(
+            "predictions", pd.DataFrame.from_dict(rows, orient="index")
+        )
