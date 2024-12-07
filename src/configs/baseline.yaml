@@ -21,11 +21,11 @@ optimizer_gen:
 
 lr_scheduler_disk: 
   _target_: torch.optim.lr_scheduler.ExponentialLR
-  "gamma": 0.999 
+  "gamma": 0.99 
 
 lr_scheduler_gen:
   _target_: torch.optim.lr_scheduler.ExponentialLR
-  "gamma": 0.999 
+  "gamma": 0.99
 
 loss_function:
   _target_: src.loss.GANLoss

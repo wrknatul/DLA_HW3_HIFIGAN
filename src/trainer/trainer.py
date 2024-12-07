@@ -114,15 +114,11 @@ class Trainer(BaseTrainer):
             pass
 
     def log_audio(
-        self, wavs_predictions, paths, examples_to_log=10, **batch
+        self, wavs, wavs_predictions, paths, examples_to_log=10, **batch
     ):
-        tuples = list(zip(wavs_predictions, paths))
+        tuples = list(zip(wavs, wavs_predictions, paths))
 
         rows = {}
-        for audio, path in tuples[:examples_to_log]:
-            rows[Path(path).name] = {
-                "audio": audio
-            }
-        self.writer.add_table(
-            "predictions", pd.DataFrame.from_dict(rows, orient="index")
-        )
+        for audio_target, audio, path in tuples[:examples_to_log]:
+            self.writer.add_audio("target " + Path(path).name, audio_target.detach(), 22050)
+            self.writer.add_audio("Predicted" + Path(path).name, audio.detach(), 22050)
