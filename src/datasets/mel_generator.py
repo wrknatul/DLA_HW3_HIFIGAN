@@ -1,11 +1,9 @@
 from dataclasses import dataclass
 
-import torch
-from torch import nn
-
-import torchaudio
-
 import librosa
+import torch
+import torchaudio
+from torch import nn
 
 
 @dataclass
@@ -24,7 +22,6 @@ class MelSpectrogramConfig:
 
 
 class MelSpectrogram(nn.Module):
-
     def __init__(self, config: MelSpectrogramConfig):
         super(MelSpectrogram, self).__init__()
 
@@ -37,7 +34,7 @@ class MelSpectrogram(nn.Module):
             n_fft=config.n_fft,
             f_min=config.f_min,
             f_max=config.f_max,
-            n_mels=config.n_mels
+            n_mels=config.n_mels,
         )
 
         # The is no way to set power in constructor in 0.5.0 version.
@@ -50,7 +47,7 @@ class MelSpectrogram(nn.Module):
             n_fft=config.n_fft,
             n_mels=config.n_mels,
             fmin=config.f_min,
-            fmax=config.f_max
+            fmax=config.f_max,
         ).T
         self.mel_spectrogram.mel_scale.fb.copy_(torch.tensor(mel_basis))
 
@@ -60,8 +57,6 @@ class MelSpectrogram(nn.Module):
         :return: Shape is [B, n_mels, T']
         """
 
-        mel = self.mel_spectrogram(audio) \
-            .clamp_(min=1e-5) \
-            .log_()
+        mel = self.mel_spectrogram(audio).clamp_(min=1e-5).log_()
 
         return mel

@@ -13,7 +13,7 @@ class GANLoss(nn.Module):
     def discriminatorLoss(self, disk_real_outputs, disk_generated_outputs):
         loss = 0.0
         for sub_dr, sub_dg in zip(disk_real_outputs, disk_generated_outputs):
-            loss += torch.mean((sub_dr - 1.0) ** 2) + torch.mean(sub_dg ** 2)
+            loss += torch.mean((sub_dr - 1.0) ** 2) + torch.mean(sub_dg**2)
         return loss
 
     def generatorLoss(self, disk_outputs):

@@ -7,19 +7,19 @@ defaults:
   - transforms: no_transforms
   - _self_
 
-optimizer_disk: 
-  _target_: torch.optim.Adam
-  lr: 0.0002
-  betas: [0.8, 0.99]
-  weight_decay: 0.01
-  
-optimizer_gen: 
+optimizer_disk:
   _target_: torch.optim.Adam
   lr: 0.0002
   betas: [0.8, 0.99]
   weight_decay: 0.01
 
-lr_scheduler_disk: 
+optimizer_gen:
+  _target_: torch.optim.Adam
+  lr: 0.0002
+  betas: [0.8, 0.99]
+  weight_decay: 0.01
+
+lr_scheduler_disk:
   _target_: torch.optim.lr_scheduler.ExponentialLR
   "gamma": 0.999
 
@@ -32,13 +32,13 @@ loss_function:
 trainer:
   log_step: 50
   n_epochs: 100
-  epoch_len: 500
+  epoch_len: 250
   device_tensors: ["wavs", "mels"] # which tensors should be on device (ex. GPU)
   resume_from: null # null or path to the checkpoint dir with *.pth and config.yaml
   device: auto # device name or "auto"
   override: True # if True, will override the previous run with the same name
   monitor: "max test_MulticlassAccuracy" # "off" or "max/min metric_name", i.e. our goal is to maximize/minimize metric
-  save_period: 5 # checkpoint each save_period epochs in addition to the best epoch
+  save_period: 4 # checkpoint each save_period epochs in addition to the best epoch
   early_stop: ${trainer.n_epochs} # epochs for early stopping
   save_dir: "saved"
   seed: 1

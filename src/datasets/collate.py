@@ -1,5 +1,6 @@
 import torch
 from torch.nn.utils.rnn import pad_sequence
+
 from src.datasets.mel_generator import MelSpectrogram, MelSpectrogramConfig
 
 
@@ -15,7 +16,7 @@ def collate_fn(dataset_items: list[dict]):
         result_batch (dict[Tensor]): dict, containing batch-version
             of the tensors.
     """
-    audios  = []
+    audios = []
     audio_lens = []
     texts = []
     paths = []
@@ -24,7 +25,7 @@ def collate_fn(dataset_items: list[dict]):
         audio_lens.append(item["audio_len"])
         texts.append(item["text"])
         paths.append(item["data_path"])
-    
+
     mel_generator = MelSpectrogram(MelSpectrogramConfig())
     final_wavs = pad_sequence(audios, batch_first=True)
     mels = mel_generator(final_wavs)
@@ -33,5 +34,5 @@ def collate_fn(dataset_items: list[dict]):
         "mels": mels,
         "audio_lens": torch.Tensor(audio_lens),
         "text": texts,
-        "paths": paths
+        "paths": paths,
     }

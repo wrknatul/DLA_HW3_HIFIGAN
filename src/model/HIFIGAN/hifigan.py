@@ -5,6 +5,7 @@ from .generator import Generator
 from .mpd import MultiPeriodDiscriminator
 from .msd import MultiScaleDiscriminator
 
+
 class HiFiGANModel(nn.Module):
     def __init__(self):
         super().__init__()

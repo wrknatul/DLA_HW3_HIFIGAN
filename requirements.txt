@@ -12,7 +12,7 @@ comet_ml
 hydra-core
 speechbrain
 librosa
-g2p-en
+# g2p-en
 
 black
 isort

@@ -1,10 +1,11 @@
 import warnings
+from itertools import chain
 
 import hydra
 import torch
 from hydra.utils import instantiate
 from omegaconf import OmegaConf
-from itertools import chain
+
 from src.datasets.data_utils import get_dataloaders
 from src.trainer import Trainer
 from src.utils.init_utils import set_random_seed, setup_saving_and_logging
@@ -48,7 +49,7 @@ def main(config):
     # build optimizer, learning rate scheduler
     disc_params = chain(
         filter(lambda p: p.requires_grad, model.mpd.parameters()),
-        filter(lambda p: p.requires_grad, model.msd.parameters())
+        filter(lambda p: p.requires_grad, model.msd.parameters()),
     )
     optimizer_disk = instantiate(config.optimizer_disk, params=disc_params)
     gen_params = filter(lambda p: p.requires_grad, model.generator.parameters())

@@ -1,9 +1,8 @@
+from itertools import chain
 from pathlib import Path
 
 import pandas as pd
-
-import torch 
-from itertools import chain
+import torch
 
 from src.metrics.tracker import MetricTracker
 from src.trainer.base_trainer import BaseTrainer
@@ -43,14 +42,18 @@ class Trainer(BaseTrainer):
             self.optimizer_gen.zero_grad()
 
         batch["wavs_predictions"] = self.model.generator(batch["mels"])
-        batch["mels_predictions"] = self.mel_transform(batch["wavs_predictions"]).squeeze(1)
+        batch["mels_predictions"] = self.mel_transform(
+            batch["wavs_predictions"]
+        ).squeeze(1)
 
         mpd_real, _ = self.model.mpd(batch["wavs"])
         mpd_predicted, _ = self.model.mpd(batch["wavs_predictions"].detach())
         msd_real, _ = self.model.msd(batch["wavs"])
         msd_prediction, _ = self.model.msd(batch["wavs_predictions"].detach())
 
-        batch["disk_loss"] = self.criterion.discriminatorLoss(mpd_real, mpd_predicted) + self.criterion.discriminatorLoss(msd_real, msd_prediction)
+        batch["disk_loss"] = self.criterion.discriminatorLoss(
+            mpd_real, mpd_predicted
+        ) + self.criterion.discriminatorLoss(msd_real, msd_prediction)
 
         if self.is_train:
             batch["disk_loss"].backward()
@@ -58,29 +61,35 @@ class Trainer(BaseTrainer):
                 chain(self.model.mpd.parameters(), self.model.msd.parameters())
             )
             self.optimizer_disk.step()
-            self.lr_scheduler_disk.step()
 
         mpd_wavs_real, mpd_wavs_feat = self.model.mpd(batch["wavs"])
-        mpd_pred_real, mpd_pred_feat = self.model.mpd(batch["wavs_predictions"].detach())
+        mpd_pred_real, mpd_pred_feat = self.model.mpd(
+            batch["wavs_predictions"].detach()
+        )
         msd_wavs_real, msd_wavs_feat = self.model.msd(batch["wavs"])
-        msd_pred_real, msd_pred_feat = self.model.msd(batch["wavs_predictions"].detach())
+        msd_pred_real, msd_pred_feat = self.model.msd(
+            batch["wavs_predictions"].detach()
+        )
 
         mpd_gen_loss = self.criterion.generatorLoss(mpd_pred_real)
         msd_gen_loss = self.criterion.generatorLoss(msd_pred_real)
         mpd_feat_loss = self.criterion.featureMatchingLoss(mpd_wavs_feat, mpd_pred_feat)
         msd_feat_loss = self.criterion.featureMatchingLoss(msd_wavs_feat, msd_pred_feat)
-        mel_loss = self.criterion.melSpectrogramLoss(batch["mels"], batch["mels_predictions"])
+        mel_loss = self.criterion.melSpectrogramLoss(
+            batch["mels"], batch["mels_predictions"]
+        )
 
         batch["gen_loss"] = mpd_gen_loss + msd_gen_loss
         batch["feature_loss"] = 2 * (mpd_feat_loss + msd_feat_loss)
         batch["mel_loss"] = 45 * mel_loss
-        batch["total_loss"] = batch["gen_loss"] + batch["feature_loss"] + batch["mel_loss"]
+        batch["total_loss"] = (
+            batch["gen_loss"] + batch["feature_loss"] + batch["mel_loss"]
+        )
 
         if self.is_train:
             batch["total_loss"].backward()
             self._clip_grad_norm(self.model.generator.parameters())
             self.optimizer_gen.step()
-            self.lr_scheduler_gen.step()
 
         for loss_name in self.config.writer.loss_names:
             metrics.update(loss_name, batch[loss_name].item())
@@ -113,12 +122,11 @@ class Trainer(BaseTrainer):
             # Log Stuff
             pass
 
-    def log_audio(
-        self, wavs, wavs_predictions, paths, examples_to_log=10, **batch
-    ):
+    def log_audio(self, wavs, wavs_predictions, paths, examples_to_log=5, **batch):
         tuples = list(zip(wavs, wavs_predictions, paths))
 
-        rows = {}
-        for audio_target, audio, path in tuples[:examples_to_log]:
-            self.writer.add_audio("target " + Path(path).name, audio_target.detach(), 22050)
-            self.writer.add_audio("Predicted" + Path(path).name, audio.detach(), 22050)
+        for i, (audio_target, audio, path) in enumerate(tuples[:examples_to_log]):
+            self.writer.add_audio(
+                "target" + str(i) + ".wav", audio_target.detach(), 22050
+            )
+            self.writer.add_audio("predicted" + str(i) + ".wav", audio.detach(), 22050)

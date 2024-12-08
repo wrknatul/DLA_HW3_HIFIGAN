@@ -6,10 +6,10 @@ from torch.nn.utils import clip_grad_norm_
 from tqdm.auto import tqdm
 
 from src.datasets.data_utils import inf_loop
+from src.datasets.mel_generator import MelSpectrogram, MelSpectrogramConfig
 from src.metrics.tracker import MetricTracker
 from src.utils.io_utils import ROOT_PATH
 
-from src.datasets.mel_generator import MelSpectrogramConfig, MelSpectrogram
 
 class BaseTrainer:
     """
@@ -173,6 +173,8 @@ class BaseTrainer:
             self._last_epoch = epoch
             result = self._train_epoch(epoch)
 
+            self.lr_scheduler_disk.step()
+            self.lr_scheduler_gen.step()
             # save logged information into logs dict
             logs = {"epoch": epoch}
             logs.update(result)
@@ -391,9 +393,7 @@ class BaseTrainer:
         if parameters is None:
             parameters = self.model.parameters()
         if self.config["trainer"].get("max_grad_norm", None) is not None:
-            clip_grad_norm_(
-                parameters, self.config["trainer"]["max_grad_norm"]
-            )
+            clip_grad_norm_(parameters, self.config["trainer"]["max_grad_norm"])
 
     @torch.no_grad()
     def _get_grad_norm(self, parameters=None, norm_type=2):
@@ -530,8 +530,10 @@ class BaseTrainer:
         if (
             checkpoint["config"]["optimizer_gen"] != self.config["optimizer_gen"]
             or checkpoint["config"]["optimizer_disk"] != self.config["optimizer_disk"]
-            or checkpoint["config"]["lr_scheduler_gen"] != self.config["lr_scheduler_gen"]
-            or checkpoint["config"]["lr_scheduler_disk"] != self.config["lr_scheduler_disk"]
+            or checkpoint["config"]["lr_scheduler_gen"]
+            != self.config["lr_scheduler_gen"]
+            or checkpoint["config"]["lr_scheduler_disk"]
+            != self.config["lr_scheduler_disk"]
         ):
             self.logger.warning(
                 "Warning: Optimizer or lr_scheduler given in the config file is different "
