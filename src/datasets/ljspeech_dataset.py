@@ -12,6 +12,7 @@ from torch.nn.utils.rnn import pad_sequence
 from tqdm import tqdm
 
 from src.datasets.base_dataset import BaseDataset
+from src.datasets.mel_generator import MelSpectrogram, MelSpectrogramConfig
 from src.utils import ROOT_PATH
 
 logger = logging.getLogger(__name__)

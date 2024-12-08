@@ -32,14 +32,13 @@ loss_function:
 trainer:
   log_step: 50
   n_epochs: 100
-  epoch_len: 250
+  epoch_len: 200
   device_tensors: ["wavs", "mels"] # which tensors should be on device (ex. GPU)
-  resume_from: null # null or path to the checkpoint dir with *.pth and config.yaml
+  resume_from: /kaggle/input/checkpoint19/checkpoint-epoch19.pth # null or path to the checkpoint dir with *.pth and config.yaml
   device: auto # device name or "auto"
   override: True # if True, will override the previous run with the same name
   monitor: "max test_MulticlassAccuracy" # "off" or "max/min metric_name", i.e. our goal is to maximize/minimize metric
-  save_period: 4 # checkpoint each save_period epochs in addition to the best epoch
+  save_period: 1 # checkpoint each save_period epochs in addition to the best epoch
   early_stop: ${trainer.n_epochs} # epochs for early stopping
   save_dir: "saved"
   seed: 1
-  max_grad_norm: 1000

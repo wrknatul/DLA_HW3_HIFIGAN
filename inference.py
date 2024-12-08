@@ -4,6 +4,7 @@ import hydra
 import torch
 from hydra.utils import instantiate
 
+from src.datasets.custom_dir_dataset import CustomDirAudioDataset
 from src.datasets.data_utils import get_dataloaders
 from src.trainer import Inferencer
 from src.utils.init_utils import set_random_seed
@@ -23,7 +24,6 @@ def main(config):
         config (DictConfig): hydra experiment config.
     """
     set_random_seed(config.inferencer.seed)
-
     if config.inferencer.device == "auto":
         device = "cuda" if torch.cuda.is_available() else "cpu"
     else:
@@ -31,36 +31,16 @@ def main(config):
 
     # setup data_loader instances
     # batch_transforms should be put on device
-    dataloaders, batch_transforms = get_dataloaders(config, device)
+    # dataloaders, batch_transforms = get_dataloaders(config, device)
 
     # build model architecture, then print to console
     model = instantiate(config.model).to(device)
     print(model)
-
     # get metrics
-    metrics = instantiate(config.metrics)
 
+    dataset = CustomDirAudioDataset(config.audio_dir, config.transcription_dir)
     # save_path for model predictions
-    save_path = ROOT_PATH / "data" / "saved" / config.inferencer.save_path
-    save_path.mkdir(exist_ok=True, parents=True)
-
-    inferencer = Inferencer(
-        model=model,
-        config=config,
-        device=device,
-        dataloaders=dataloaders,
-        batch_transforms=batch_transforms,
-        save_path=save_path,
-        metrics=metrics,
-        skip_model_load=False,
-    )
-
-    logs = inferencer.run_inference()
-
-    for part in logs.keys():
-        for key, value in logs[part].items():
-            full_key = part + "_" + key
-            print(f"    {full_key:15s}: {value}")
+    dataset.write(model)
 
 
 if __name__ == "__main__":
